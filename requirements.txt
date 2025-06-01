@@ -4,3 +4,4 @@ ta
 pandas
 python-dotenv
 pyti
+numpy
