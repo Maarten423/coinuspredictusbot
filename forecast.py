@@ -95,18 +95,16 @@ def generate_forecast():
         score = score_coin(prices, volumes)
         ranked.append({"symbol": symbol, "score": score, "prices": prices, "volumes": volumes})
 
-    top_coins = sorted(
-        [
-            x for x in ranked
-            if x['score'] > -900
-            and len(x['prices']) > 1
-            and x['prices'][-1] > x['prices'][-2]  # koersstijging
-            and calculate_ema(x['prices'], 20) > calculate_ema(x['prices'], 50)  # bullish
-            and 50 <= calculate_rsi(x['prices']) <= 80  # gezonde RSI
-        ],
-        key=lambda x: x['score'],
-        reverse=True
-    )[:10]
+  filtered = [x for x in ranked if (
+    x['score'] > -900 and
+    len(x['prices']) >= 2 and
+    x['prices'][-1] > x['prices'][-2] and
+    calculate_ema(x['prices'], 20) > calculate_ema(x['prices'], 50) and
+    50 <= calculate_rsi(x['prices']) <= 80
+)]
+
+top_coins = sorted(filtered, key=lambda x: x['score'], reverse=True)[:10]
+
 
     logging.info(f"Top 10 coins: {[x['symbol'] for x in top_coins]}")
 
