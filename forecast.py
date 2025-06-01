@@ -11,12 +11,18 @@ BITVAVO_BASE = "https://api.bitvavo.com/v2"
 
 def fetch_bitvavo_tickers():
     try:
-        response = requests.get(f"{BITVAVO_BASE}/tickers", timeout=10)
+        response = requests.get(f"{BITVAVO_BASE}/tickers", timeout=5)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        if not isinstance(data, list):
+            logging.warning("Bitvavo gaf geen geldige lijst terug.")
+            return []
+        logging.info(f"{len(data)} tickers opgehaald van Bitvavo.")
+        return data
     except Exception as e:
         logging.error(f"Fout bij ophalen tickers: {e}")
         return []
+
 
 def fetch_ohlc(symbol):
     try:
