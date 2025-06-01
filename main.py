@@ -15,7 +15,7 @@ TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 @app.route("/", methods=["GET"])
 def index():
-    return "CoinusPredictusBot is actief!"
+    return "✅ CoinusPredictusBot is actief!"
 
 @app.route("/", methods=["POST"])
 def webhook():
@@ -38,7 +38,9 @@ def webhook():
                 "chat_id": chat_id,
                 "text": antwoord
             })
-            logging.info(f"Antwoord verzonden: {response.status_code}")
+            logging.info(f"Antwoord verzonden met status: {response.status_code}")
+        else:
+            logging.warning("Geen geldig bericht ontvangen.")
     except Exception as e:
         logging.error(f"Fout in webhook-handler: {e}")
 
