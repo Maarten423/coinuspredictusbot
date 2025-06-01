@@ -135,4 +135,3 @@ def generate_forecast():
 
     return "\n".join(output)
 
-
