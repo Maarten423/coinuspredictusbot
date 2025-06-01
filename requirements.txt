@@ -3,4 +3,4 @@ requests
 ta
 pandas
 python-dotenv
-
+pyti
