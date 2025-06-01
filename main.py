@@ -1,4 +1,7 @@
 from flask import Flask, request
+import logging
+logging.basicConfig(level=logging.INFO)
+
 import requests
 import os
 from forecast import generate_forecast  # Zorg dat deze module goed is ingevuld
@@ -15,6 +18,7 @@ def index():
 @app.route("/", methods=["POST"])
 def webhook():
     data = request.get_json()
+logging.info(f"Ontvangen data: {data}")
 
     if "message" in data and "text" in data["message"]:
         chat_id = data["message"]["chat"]["id"]
