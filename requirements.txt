@@ -1,4 +1,6 @@
+flask
 requests
-python-telegram-bot
+ta
 pandas
+python-dotenv
 
