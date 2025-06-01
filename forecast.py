@@ -11,7 +11,7 @@ BITVAVO_BASE = "https://api.bitvavo.com/v2"
 
 def fetch_bitvavo_tickers():
     try:
-        response = requests.get(f"{BITVAVO_BASE}/ticker/24h", timeout=5)
+        response = requests.get(f"{BITVAVO_BASE}/tickers", timeout=5)
         response.raise_for_status()
         data = response.json()
         if not isinstance(data, list):
@@ -22,8 +22,6 @@ def fetch_bitvavo_tickers():
     except Exception as e:
         logging.error(f"Fout bij ophalen tickers: {e}")
         return []
-
-
 
 def fetch_ohlc(symbol):
     try:
@@ -97,7 +95,19 @@ def generate_forecast():
         score = score_coin(prices, volumes)
         ranked.append({"symbol": symbol, "score": score, "prices": prices, "volumes": volumes})
 
-    top_coins = sorted([x for x in ranked if x['score'] > -900], key=lambda x: x['score'], reverse=True)[:10]
+    top_coins = sorted(
+        [
+            x for x in ranked
+            if x['score'] > -900
+            and len(x['prices']) > 1
+            and x['prices'][-1] > x['prices'][-2]  # koersstijging
+            and calculate_ema(x['prices'], 20) > calculate_ema(x['prices'], 50)  # bullish
+            and 50 <= calculate_rsi(x['prices']) <= 80  # gezonde RSI
+        ],
+        key=lambda x: x['score'],
+        reverse=True
+    )[:10]
+
     logging.info(f"Top 10 coins: {[x['symbol'] for x in top_coins]}")
 
     output = []
@@ -124,4 +134,5 @@ def generate_forecast():
         return "⚠️ Geen resultaten beschikbaar. Probeer het later opnieuw."
 
     return "\n".join(output)
+
 
