@@ -22,9 +22,12 @@ def webhook():
         if "message" in data and "text" in data["message"]:
             chat_id = data["message"]["chat"]["id"]
             text = data["message"]["text"].strip().lower()
-            if "check" in text:
-                forecast_text = generate_forecast()
-                antwoord = f"📊 Top Coins volgens analyse:\n\n{forecast_text}"
+           if "check" in text:
+    logging.info("⚙️ Forecast wordt gegenereerd...")
+    forecast_text = generate_forecast()
+    antwoord = f"📊 Top Coins volgens analyse:\n\n{forecast_text}"
+    logging.info(f"🔁 Antwoord dat wordt verstuurd: {antwoord}")
+
             else:
                 antwoord = "🤖 Stuur 'check' voor een realtime forecast van de 10 beste coins."
             requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": antwoord})
