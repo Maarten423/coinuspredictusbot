@@ -11,26 +11,32 @@ BITVAVO_BASE = "https://api.bitvavo.com/v2"
 
 def fetch_bitvavo_tickers():
     try:
-        response = requests.get(f"{BITVAVO_BASE}/tickers", timeout=5)
+        response = requests.get(f"{BITVAVO_BASE}/markets", timeout=5)
         response.raise_for_status()
         data = response.json()
         if not isinstance(data, list):
             logging.warning("Bitvavo gaf geen geldige lijst terug.")
             return []
+        logging.info(f"{len(data)} markten opgehaald van Bitvavo.")
         return data
     except Exception as e:
-        logging.error(f"Fout bij ophalen tickers: {e}")
+        logging.error(f"Fout bij ophalen markten: {e}")
         return []
 
-def fetch_ohlc(symbol):
+def fetch_ohlc(market):
     try:
-        r = requests.get(f"{BITVAVO_BASE}/{symbol}/candles", params={"interval": "1h", "limit": 50}, timeout=10)
+        r = requests.get(
+            f"{BITVAVO_BASE}/{market}/candles",
+            params={"interval": "1h", "limit": 50},
+            timeout=10
+        )
+        r.raise_for_status()
         data = r.json()
         closes = [float(entry[4]) for entry in data if float(entry[4]) > 0]
         volumes = [float(entry[5]) for entry in data]
         return closes, volumes
     except Exception as e:
-        logging.warning(f"Fout bij ophalen ohlc voor {symbol}: {e}")
+        logging.warning(f"Fout bij ophalen ohlc voor {market}: {e}")
         return [], []
 
 def calculate_ema(prices, window):
@@ -46,8 +52,15 @@ def calculate_rsi(prices):
 
 def fetch_news_sentiment(symbol):
     try:
-        resp = requests.get("https://cryptopanic.com/api/v1/posts/",
-            params={"auth_token": CRYPTOPANIC_API_KEY, "currencies": symbol.lower(), "public": "true"}, timeout=10)
+        resp = requests.get(
+            "https://cryptopanic.com/api/v1/posts/",
+            params={
+                "auth_token": CRYPTOPANIC_API_KEY,
+                "currencies": symbol.lower(),
+                "public": "true"
+            },
+            timeout=10
+        )
         posts = resp.json().get("results", [])
         headlines = [post["title"] for post in posts if post.get("title")]
         if not headlines:
@@ -72,20 +85,29 @@ def score_coin(prices, volumes):
         return -999
 
 def generate_forecast():
+    logging.info("Forecast gestart")
     tickers = fetch_bitvavo_tickers()
+    logging.info(f"Aantal markten ontvangen: {len(tickers)}")
+
     ranked = []
     for ticker in tickers:
-        symbol = ticker['market'].replace("-EUR", "")
-        prices, volumes = fetch_ohlc(ticker['market'])
+        market = ticker['market']
+        symbol = market.replace("-EUR", "")
+        prices, volumes = fetch_ohlc(market)
         score = score_coin(prices, volumes)
         ranked.append({"symbol": symbol, "score": score, "prices": prices, "volumes": volumes})
 
     filtered = [x for x in ranked if (
-        x['score'] > -900 and len(x['prices']) >= 2 and x['prices'][-1] > x['prices'][-2]
-        and calculate_ema(x['prices'], 20) > calculate_ema(x['prices'], 50)
-        and 50 <= calculate_rsi(x['prices']) <= 80)]
+        x['score'] > -900 and
+        len(x['prices']) >= 2 and
+        x['prices'][-1] > x['prices'][-2] and
+        calculate_ema(x['prices'], 20) > calculate_ema(x['prices'], 50) and
+        50 <= calculate_rsi(x['prices']) <= 80
+    )]
 
     top_coins = sorted(filtered, key=lambda x: x['score'], reverse=True)[:10]
+
+    logging.info(f"Top 10 coins: {[x['symbol'] for x in top_coins]}")
 
     output = []
     for idx, coin in enumerate(top_coins, 1):
@@ -106,4 +128,8 @@ def generate_forecast():
             f"🔖 Nieuws: {news}\n"
             f"🗨️ Analyse: {'Bullish trend' if ema20 > ema50 else 'Afwachtend'} bij volume van {vol_change:.0f}%\n"
         )
-    return "\n".join(output) if output else "⚠️ Geen resultaten beschikbaar. Probeer het later opnieuw."
+
+    if not output:
+        return "⚠️ Geen resultaten beschikbaar. Probeer het later opnieuw."
+
+    return "\n".join(output)
