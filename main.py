@@ -19,20 +19,31 @@ def webhook():
     try:
         data = request.get_json()
         logging.info(f"Ontvangen data: {data}")
+
         if "message" in data and "text" in data["message"]:
             chat_id = data["message"]["chat"]["id"]
             text = data["message"]["text"].strip().lower()
-           if "check" in text:
-    logging.info("⚙️ Forecast wordt gegenereerd...")
-    forecast_text = generate_forecast()
-    antwoord = f"📊 Top Coins volgens analyse:\n\n{forecast_text}"
-    logging.info(f"🔁 Antwoord dat wordt verstuurd: {antwoord}")
 
+            if "check" in text:
+                logging.info("⚙️ Forecast wordt gegenereerd...")
+                forecast_text = generate_forecast()
+                antwoord = f"📊 Top Coins volgens analyse:\n\n{forecast_text}"
+                logging.info(f"🔁 Antwoord dat wordt verstuurd: {antwoord}")
             else:
                 antwoord = "🤖 Stuur 'check' voor een realtime forecast van de 10 beste coins."
-            requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={"chat_id": chat_id, "text": antwoord})
+
+            # Verstuur bericht via Telegram + log de response
+            response = requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+                "chat_id": chat_id,
+                "text": antwoord
+            })
+            logging.info(f"✅ Bericht verzonden, status: {response.status_code}")
+            logging.info(f"📨 Telegram antwoord: {response.text}")
+        else:
+            logging.warning("⚠️ Geen geldig bericht ontvangen.")
     except Exception as e:
-        logging.error(f"Fout in webhook-handler: {e}")
+        logging.error(f"❌ Fout in webhook-handler: {e}")
+
     return "ok", 200
 
 if __name__ == "__main__":
