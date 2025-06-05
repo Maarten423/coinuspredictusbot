@@ -4,10 +4,12 @@ import os
 import logging
 from forecast import generate_forecast
 
+# Logging inschakelen
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Zet je token direct hier als test
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7337750294:AAFgOM3X-e5jdmxAfv2D3cT2bbvprR3RyU4")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 @app.route("/", methods=["GET"])
@@ -32,7 +34,7 @@ def webhook():
             else:
                 antwoord = "🤖 Stuur 'check' voor een realtime forecast van de 10 beste coins."
 
-            # Verstuur bericht via Telegram + log de response
+            # Probeer te verzenden
             response = requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
                 "chat_id": chat_id,
                 "text": antwoord
