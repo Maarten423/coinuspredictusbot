@@ -8,7 +8,6 @@ from forecast import generate_forecast
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-# Zet je token direct hier als test
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7337750294:AAFgOM3X-e5jdmxAfv2D3cT2bbvprR3RyU4")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}"
 
@@ -34,18 +33,18 @@ def webhook():
             else:
                 antwoord = "🤖 Stuur 'check' voor een realtime forecast van de 10 beste coins."
 
-            # Probeer te verzenden
+            # Probeer bericht te versturen naar Telegram
             response = requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
                 "chat_id": chat_id,
                 "text": antwoord
             })
+
             logging.info(f"✅ Bericht verzonden, status: {response.status_code}")
             logging.info(f"📨 Telegram antwoord: {response.text}")
         else:
             logging.warning("⚠️ Geen geldig bericht ontvangen.")
     except Exception as e:
         logging.error(f"❌ Fout in webhook-handler: {e}")
-
     return "ok", 200
 
 if __name__ == "__main__":
