@@ -10,21 +10,17 @@ logging.basicConfig(level=logging.INFO)
 CRYPTOPANIC_API_KEY = "11e327720451865c51baabbdf9e24fcad10dd59f"
 BITVAVO_BASE = "https://api.bitvavo.com/v2"
 
-
 def fetch_bitvavo_tickers():
     try:
-        response = requests.get(f"{BITVAVO_BASE}/tickers", timeout=5)
+        response = requests.get(f"{BITVAVO_BASE}/markets", timeout=10)
         response.raise_for_status()
         data = response.json()
-        if not isinstance(data, list):
-            logging.warning("Bitvavo gaf geen geldige lijst terug.")
-            return []
-        logging.info(f"{len(data)} tickers opgehaald van Bitvavo.")
-        return data
+        valid = [x for x in data if x["market"].endswith("-EUR")]
+        logging.info(f"{len(valid)} markten opgehaald van Bitvavo.")
+        return valid
     except Exception as e:
-        logging.error(f"Fout bij ophalen tickers: {e}")
+        logging.error(f"Fout bij ophalen markten: {e}")
         return []
-
 
 def fetch_ohlc(symbol):
     try:
@@ -41,10 +37,8 @@ def fetch_ohlc(symbol):
         logging.warning(f"Fout bij ophalen ohlc voor {symbol}: {e}")
         return [], []
 
-
 def calculate_ema(prices, window):
     return pd.Series(prices).ewm(span=window, adjust=False).mean().iloc[-1]
-
 
 def calculate_rsi(prices):
     if len(prices) < 14:
@@ -53,7 +47,6 @@ def calculate_rsi(prices):
         return round(rsi(prices, 14)[-1], 1)
     except:
         return 50
-
 
 def fetch_news_sentiment(symbol):
     try:
@@ -75,7 +68,6 @@ def fetch_news_sentiment(symbol):
         logging.warning(f"Fout bij nieuws {symbol}: {e}")
         return "Geen nieuws."
 
-
 def score_coin(prices, volumes):
     if not prices or len(prices) < 2:
         return -999
@@ -90,24 +82,30 @@ def score_coin(prices, volumes):
     except:
         return -999
 
-
 def generate_forecast():
     logging.info("Forecast gestart")
     tickers = fetch_bitvavo_tickers()
-    logging.info(f"Aantal tickers ontvangen: {len(tickers)}")
+    logging.info(f"Aantal markten ontvangen: {len(tickers)}")
 
     ranked = []
+
     batch_size = 50
     for i in range(0, len(tickers), batch_size):
         batch = tickers[i:i + batch_size]
-        logging.info(f"Bezig met batch {i // batch_size + 1}: {len(batch)} tickers")
         for ticker in batch:
             symbol = ticker['market'].replace("-EUR", "")
             prices, volumes = fetch_ohlc(ticker['market'])
             score = score_coin(prices, volumes)
-            ranked.append({"symbol": symbol, "score": score, "prices": prices, "volumes": volumes})
-        logging.info("Batch voltooid. Wachten 60 seconden...")
-        time.sleep(60)
+            ranked.append({
+                "symbol": symbol,
+                "score": score,
+                "prices": prices,
+                "volumes": volumes
+            })
+
+        if i + batch_size < len(tickers):
+            logging.info(f"Wachten 60 seconden na batch {i // batch_size + 1}")
+            time.sleep(60)
 
     filtered = [x for x in ranked if (
         x['score'] > -900 and
