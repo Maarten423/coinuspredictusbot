@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 def get_tickers():
-    url = "https://api.bitvavo.com/v2/tickers"
+    url = "https://api.bitvavo.com/v2/market/ticker/24h"
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -15,6 +15,7 @@ def get_tickers():
     except requests.RequestException as e:
         logging.error(f"Fout bij ophalen tickers: {e}")
         return []
+
 
 def get_market_data(symbols):
     market_data = {}
